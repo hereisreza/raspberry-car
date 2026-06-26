@@ -1,92 +1,124 @@
-<!DOCTYPE html><html lang="fa" dir="rtl" class="dark">
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ماشین کنترلی</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css">
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700;900&display=swap" rel="stylesheet">
-<script>tailwind.config = { darkMode: "class" }</script>
+<script>tailwind.config = { darkMode: "class" };</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
 <style>
-body { 
-    overscroll-behavior: none; 
-    user-select: none; 
-    -webkit-user-select: none; 
-    font-family: 'Vazirmatn', sans-serif; 
+:root { color-scheme: dark light; }
+body {
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
+    font-family: 'Vazirmatn', sans-serif;
 }
-h1, span, button, div:not([dir="rtl"]) { font-family: 'Vazirmatn', 'Ubuntu', sans-serif; }
-#log-container { height: 120px; overflow-y: auto; font-family: 'Ubuntu', monospace; scroll-behavior: smooth; }
-.progress-bar { transition: width .2s ease-out, background-color .4s ease; }
+button, input { touch-action: manipulation; }
+[dir="ltr"], .font-mono { font-family: 'Ubuntu', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+#log-container { height: 116px; overflow-y: auto; scroll-behavior: smooth; }
+.progress-bar { transition: width .18s ease-out, background-color .25s ease; }
 .joystick-zone { position: relative; width: 100%; height: 200px; border-radius: 1.5rem; z-index: 10; touch-action: none; }
 .modal-backdrop { backdrop-filter: blur(8px); z-index: 40; }
-.slider-value { min-width: 52px; text-align: left; font-family: 'Ubuntu', monospace; }
-/* Hardware acceleration for gauge */
-#gauge-container { will-change: transform; }
-#gauge-fill { transition: stroke-dashoffset 0.3s ease-out; will-change: stroke-dashoffset; }
+.slider-value { min-width: 62px; text-align: left; font-family: 'Ubuntu', ui-monospace, monospace; }
+#gauge-container { will-change: transform; transform-origin: 50% 100%; }
+#gauge-fill { transition: stroke-dashoffset .20s ease-out, opacity .12s ease-out; will-change: stroke-dashoffset, opacity; }
+.motor-bar { transition: width .12s linear; }
+.help-wrap { position: relative; display: inline-flex; align-items: center; }
+.help-button {
+    width: 1.35rem; height: 1.35rem; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 900; line-height: 1;
+    color: rgb(59 130 246); background: rgb(239 246 255);
+    border: 1px solid rgb(191 219 254);
+    cursor: help;
+}
+.dark .help-button { color: rgb(147 197 253); background: rgba(30, 64, 175, .28); border-color: rgba(96, 165, 250, .28); }
+.help-tooltip {
+    position: absolute; top: 1.8rem; right: 0; z-index: 80;
+    width: min(270px, 76vw); padding: .65rem .75rem; border-radius: .9rem;
+    opacity: 0; transform: translateY(-4px); pointer-events: none;
+    background: white; color: rgb(55 65 81); border: 1px solid rgb(229 231 235);
+    box-shadow: 0 14px 35px rgba(15, 23, 42, .16);
+    font-size: .72rem; line-height: 1.75;
+    transition: opacity .16s ease, transform .16s ease;
+}
+.dark .help-tooltip { background: rgb(17 24 39); color: rgb(209 213 219); border-color: rgb(55 65 81); box-shadow: 0 18px 40px rgba(0, 0, 0, .42); }
+.help-wrap:hover .help-tooltip, .help-wrap:focus-within .help-tooltip, .help-wrap.is-open .help-tooltip { opacity: 1; transform: translateY(0); }
+input[type="range"] { accent-color: rgb(59 130 246); }
+@media (max-height: 720px) { .joystick-zone { height: 170px; } #log-container { height: 92px; } }
+@media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
 </style>
 </head>
 <body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100 h-screen flex flex-col p-4 transition-colors duration-300">
 
-<!-- HEADER -->
-<div class="flex justify-between items-center mb-4">
+<!-- Header -->
+<header class="flex justify-between items-center mb-4 shrink-0">
     <h1 class="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-500 drop-shadow-sm">ماشین کنترلی</h1>
     <div class="flex items-center gap-2">
-        <button id="settings-btn" class="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md hover:scale-105 transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <button id="emergency-stop" class="px-3 py-2 rounded-full bg-red-600 text-white shadow-sm hover:bg-red-700 active:scale-95 transition-all text-xs font-black">STOP</button>
+        <button id="settings-btn" class="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:shadow-md hover:scale-105 transition-all" aria-label="تنظیمات">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
         </button>
-        <button id="theme-toggle" class="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:scale-105 transition-all text-xl">🌙</button>
+        <button id="theme-toggle" class="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:scale-105 transition-all text-xl" aria-label="تغییر تم">🌙</button>
         <div id="status-badge" class="px-3 py-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold tracking-widest shadow-md">قطع ارتباط</div>
     </div>
-</div>
+</header>
 
-<!-- TELEMETRY -->
-<div class="grid grid-cols-4 gap-3 mb-4">
+<!-- Telemetry -->
+<section class="grid grid-cols-5 gap-2 sm:gap-3 mb-4 shrink-0">
     <div class="bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between text-[10px] text-gray-500 font-bold mb-1"><span>CPU</span><span id="tel-cpu-val" class="font-mono text-gray-800 dark:text-gray-200">0%</span></div>
-        <div class="bg-gray-100 dark:bg-gray-700 rounded-full h-1"><div id="tel-cpu-bar" class="progress-bar bg-blue-500 h-1 rounded-full" style="width:0%"></div></div>
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-full h-1" dir="ltr"><div id="tel-cpu-bar" class="progress-bar bg-blue-500 h-1 rounded-full" style="width:0%"></div></div>
     </div>
     <div class="bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between text-[10px] text-gray-500 font-bold mb-1"><span>RAM</span><span id="tel-ram-val" class="font-mono text-gray-800 dark:text-gray-200">0%</span></div>
-        <div class="bg-gray-100 dark:bg-gray-700 rounded-full h-1"><div id="tel-ram-bar" class="progress-bar bg-purple-500 h-1 rounded-full" style="width:0%"></div></div>
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-full h-1" dir="ltr"><div id="tel-ram-bar" class="progress-bar bg-purple-500 h-1 rounded-full" style="width:0%"></div></div>
     </div>
     <div class="bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between text-[10px] text-gray-500 font-bold mb-1"><span>Temp</span><span id="tel-temp-val" class="font-mono text-gray-800 dark:text-gray-200">0°C</span></div>
-        <div class="bg-gray-100 dark:bg-gray-700 rounded-full h-1"><div id="tel-temp-bar" class="progress-bar bg-green-500 h-1 rounded-full" style="width:0%"></div></div>
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-full h-1" dir="ltr"><div id="tel-temp-bar" class="progress-bar bg-green-500 h-1 rounded-full" style="width:0%"></div></div>
     </div>
     <div class="bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between text-[10px] text-gray-500 font-bold mb-1"><span>WiFi</span><span id="tel-wifi-val" class="font-mono text-gray-800 dark:text-gray-200">0%</span></div>
-        <div class="bg-gray-100 dark:bg-gray-700 rounded-full h-1"><div id="tel-wifi-bar" class="progress-bar bg-cyan-500 h-1 rounded-full" style="width:0%"></div></div>
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-full h-1" dir="ltr"><div id="tel-wifi-bar" class="progress-bar bg-cyan-500 h-1 rounded-full" style="width:0%"></div></div>
     </div>
-</div>
+    <div class="bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between text-[10px] text-gray-500 font-bold mb-1"><span>Power</span><span id="tel-power-val" class="font-mono text-gray-800 dark:text-gray-200">OK</span></div>
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-full h-1" dir="ltr"><div id="tel-power-bar" class="progress-bar bg-emerald-500 h-1 rounded-full" style="width:100%"></div></div>
+    </div>
+</section>
 
-<!-- GAUGE & POWER SETTINGS -->
-<div class="mb-4 grid grid-cols-3 gap-3">
-    <!-- Motor Power Setting -->
+<!-- Gauge and drive state -->
+<section class="mb-4 grid grid-cols-3 gap-3 shrink-0">
     <div class="col-span-1 bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center items-center">
-        <span class="text-xs font-bold text-gray-500 mb-2 text-center">حداکثر سرعت</span>
+        <span class="text-xs font-bold text-gray-500 mb-2 text-center">حد توان موتور</span>
         <span id="motor-power-display" class="font-black font-mono text-blue-500 text-3xl drop-shadow-sm">70%</span>
+        <span id="drive-mode" class="mt-2 text-[10px] font-bold text-gray-400 text-center">idle</span>
     </div>
 
-    <!-- Live SVG Speedometer Gauge (LTR Formatted) -->
     <div class="col-span-2 bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center overflow-hidden" dir="ltr">
+        <div class="w-full flex items-center justify-between text-[10px] font-black text-gray-500 mb-1" dir="rtl">
+            <span>گاز</span>
+            <span id="gauge-direction-label" class="text-gray-400">آماده</span>
+        </div>
         <div id="gauge-container" class="relative w-[180px] h-[100px] origin-bottom">
-            <svg viewBox="0 0 200 120" class="w-full h-full drop-shadow-md">
-                <!-- Background Arc -->
-                <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="18" stroke-linecap="round"/>
-                <!-- Foreground Arc -->
-                <path id="gauge-fill" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gauge-gradient)" stroke-width="18" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+            <svg viewBox="0 0 200 120" class="w-full h-full drop-shadow-md" dir="ltr" aria-label="نمایشگر گاز">
                 <defs>
                     <linearGradient id="gauge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stop-color="#3b82f6" />
-                        <stop offset="100%" stop-color="#10b981" />
+                        <stop offset="0%" stop-color="#10b981" />
+                        <stop offset="100%" stop-color="#22c55e" />
                     </linearGradient>
                 </defs>
+                <path d="M 20 100 A 80 80 0 0 1 180 100" pathLength="100" fill="none" stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="18" stroke-linecap="round"/>
+                <path id="gauge-fill" d="M 20 100 A 80 80 0 0 1 180 100" pathLength="100" fill="none" stroke="url(#gauge-gradient)" stroke-width="18" stroke-linecap="butt" stroke-dasharray="100" stroke-dashoffset="100" opacity="0"/>
             </svg>
-            <!-- Data inside Gauge -->
             <div class="absolute bottom-1 left-0 right-0 text-center flex flex-col items-center">
                 <span id="gauge-text" class="text-4xl font-black font-mono text-gray-800 dark:text-gray-100 tracking-tighter">0%</span>
                 <div class="flex items-center gap-1.5 mt-1" dir="rtl">
@@ -95,310 +127,530 @@ h1, span, button, div:not([dir="rtl"]) { font-family: 'Vazirmatn', 'Ubuntu', san
                 </div>
             </div>
         </div>
+        <div class="w-full mt-2 space-y-1 text-[10px] font-bold text-gray-500" dir="rtl">
+            <div class="flex items-center gap-2"><span class="w-8">چپ</span><div class="flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden" dir="ltr"><div id="left-motor-bar" class="motor-bar h-1 bg-blue-500 rounded-full" style="width:0%"></div></div><span id="left-motor-val" class="w-10 text-left font-mono">0%</span></div>
+            <div class="flex items-center gap-2"><span class="w-8">راست</span><div class="flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden" dir="ltr"><div id="right-motor-bar" class="motor-bar h-1 bg-indigo-500 rounded-full" style="width:0%"></div></div><span id="right-motor-val" class="w-10 text-left font-mono">0%</span></div>
+        </div>
     </div>
-</div>
+</section>
 
-<!-- JOYSTICKS -->
-<div class="grid grid-cols-2 gap-4 mb-4" dir="ltr">
+<!-- Joysticks -->
+<section class="grid grid-cols-2 gap-4 mb-4 shrink-0" dir="ltr">
     <div>
-        <div class="text-center text-xs mb-2 font-bold text-gray-500 uppercase tracking-widest" dir="rtl">گاز / ترمز</div>
+        <div class="text-center text-xs mb-2 font-bold text-gray-500 uppercase tracking-widest" dir="rtl">گاز</div>
         <div id="throttle-zone" class="joystick-zone bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900 shadow-inner border border-white/50 dark:border-gray-700/50"></div>
     </div>
     <div>
         <div class="text-center text-xs mb-2 font-bold text-gray-500 uppercase tracking-widest" dir="rtl">فرمان</div>
         <div id="steering-zone" class="joystick-zone bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900 shadow-inner border border-white/50 dark:border-gray-700/50"></div>
     </div>
-</div>
+</section>
 
-<!-- LOGS -->
-<div class="flex-grow flex flex-col min-h-0 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-3 mb-2">
+<!-- Logs -->
+<section class="flex-grow flex flex-col min-h-0 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-3 mb-2">
     <div class="flex justify-between items-center mb-2 px-1">
         <div class="text-xs font-bold text-gray-500">گزارشات سیستم</div>
         <button id="clear-logs" class="text-[10px] bg-red-50 text-red-500 hover:bg-red-500 hover:text-white dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-600 dark:hover:text-white px-3 py-1 rounded-lg font-bold transition-colors">پاک کردن</button>
     </div>
-    <div id="log-container" class="text-[11px] flex-grow shadow-inner bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800 overflow-y-auto"></div>
-</div>
+    <div id="log-container" class="text-[11px] flex-grow shadow-inner bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800 overflow-y-auto font-mono" dir="ltr"></div>
+</section>
 
-<!-- FOOTER -->
-<div class="text-center text-[10px] text-gray-400 dark:text-gray-500 font-bold tracking-widest py-1">
-    سازنده: علوی - ۲۰۲۶
-</div>
+<footer class="text-center text-[10px] text-gray-400 dark:text-gray-500 font-bold tracking-widest py-1 shrink-0 space-y-1">
+    <div>سازنده: علوی - ۲۰۲۶</div>
+    <a href="https://hereisreza.github.io/raspberry-car/" target="_blank" rel="noopener" class="inline-flex items-center justify-center rounded-full px-3 py-1 bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 hover:text-blue-500 dark:hover:text-blue-300 hover:border-blue-300 dark:hover:border-blue-500 transition-colors">لینک پروژه در گیتهاب</a>
+</footer>
 
-<!-- SETTINGS MODAL -->
+<!-- Settings modal -->
 <div id="settings-modal" class="fixed inset-0 hidden items-center justify-center z-50 modal-backdrop bg-gray-900/40 dark:bg-black/60 opacity-0 transition-opacity duration-300">
-    <div id="settings-panel" class="bg-white dark:bg-gray-800 rounded-3xl p-6 w-[95%] max-w-md max-h-[90vh] overflow-y-auto shadow-2xl transform scale-95 transition-transform duration-300 border border-gray-100 dark:border-gray-700">
-        <div class="flex justify-between items-center mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">
-            <h2 class="font-black text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-500">تنظیمات پیشرفته</h2>
-            <button id="close-settings" class="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 w-8 h-8 rounded-full flex items-center justify-center transition-colors font-bold text-lg">✕</button>
+    <div id="settings-panel" class="bg-white dark:bg-gray-800 rounded-3xl p-6 w-[95%] max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl transform scale-95 transition-transform duration-300 border border-gray-100 dark:border-gray-700" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="flex justify-between items-center mb-5 border-b border-gray-100 dark:border-gray-700 pb-4">
+            <h2 id="settings-title" class="font-black text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-500">تنظیمات پیشرفته</h2>
+            <button id="close-settings" class="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 w-8 h-8 rounded-full flex items-center justify-center transition-colors font-bold text-lg" aria-label="بستن">✕</button>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mb-5 text-xs font-bold">
+            <button data-preset="soft" class="preset-btn bg-emerald-50 text-emerald-700 dark:bg-emerald-900/25 dark:text-emerald-300 rounded-xl py-2 hover:scale-[1.02] active:scale-95 transition">نرم</button>
+            <button data-preset="balanced" class="preset-btn bg-blue-50 text-blue-700 dark:bg-blue-900/25 dark:text-blue-300 rounded-xl py-2 hover:scale-[1.02] active:scale-95 transition">متعادل</button>
+            <button data-preset="sport" class="preset-btn bg-amber-50 text-amber-700 dark:bg-amber-900/25 dark:text-amber-300 rounded-xl py-2 hover:scale-[1.02] active:scale-95 transition">سریع</button>
         </div>
         <div id="settings-content" class="space-y-6"></div>
+        <button id="reset-settings" class="w-full mt-6 py-2.5 rounded-2xl bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 font-bold text-xs transition">بازگشت به پیش‌فرض امن</button>
     </div>
 </div>
 
-<script>
-// --- DOM Elements Cache (Optimization) ---
-// با ذخیره المان‌ها، از جستجوی مداوم در DOM در توابع سریع مثل آپدیت گیج جلوگیری می‌شود
+<script type="module">
+// DOM cache keeps all element references in one place.
 const DOM = {
     cpuVal: document.getElementById("tel-cpu-val"), cpuBar: document.getElementById("tel-cpu-bar"),
     ramVal: document.getElementById("tel-ram-val"), ramBar: document.getElementById("tel-ram-bar"),
     tempVal: document.getElementById("tel-temp-val"), tempBar: document.getElementById("tel-temp-bar"),
     wifiVal: document.getElementById("tel-wifi-val"), wifiBar: document.getElementById("tel-wifi-bar"),
-    gaugeFill: document.getElementById("gauge-fill"),
-    gaugeText: document.getElementById("gauge-text"),
-    gaugeContainer: document.getElementById("gauge-container"),
-    reverseLed: document.getElementById("reverse-led"),
-    motorPowerDisplay: document.getElementById("motor-power-display"),
-    logContainer: document.getElementById("log-container"),
-    statusBadge: document.getElementById("status-badge")
+    powerVal: document.getElementById("tel-power-val"), powerBar: document.getElementById("tel-power-bar"),
+    gaugeFill: document.getElementById("gauge-fill"), gaugeText: document.getElementById("gauge-text"),
+    gaugeContainer: document.getElementById("gauge-container"), gaugeDirectionLabel: document.getElementById("gauge-direction-label"), reverseLed: document.getElementById("reverse-led"),
+    motorPowerDisplay: document.getElementById("motor-power-display"), driveMode: document.getElementById("drive-mode"),
+    leftMotorBar: document.getElementById("left-motor-bar"), rightMotorBar: document.getElementById("right-motor-bar"),
+    leftMotorVal: document.getElementById("left-motor-val"), rightMotorVal: document.getElementById("right-motor-val"),
+    logContainer: document.getElementById("log-container"), statusBadge: document.getElementById("status-badge"),
+    settingsModal: document.getElementById("settings-modal"), settingsPanel: document.getElementById("settings-panel"), settingsContent: document.getElementById("settings-content")
 };
 
-// --- Theme Handling ---
-const themeBtn = document.getElementById("theme-toggle");
-function setTheme(dark) {
-    if (dark) { document.documentElement.classList.add("dark"); localStorage.theme = "dark"; themeBtn.innerText = "☀️"; }
-    else { document.documentElement.classList.remove("dark"); localStorage.theme = "light"; themeBtn.innerText = "🌙"; }
+const DATA = {
+    storageKey: "robot_settings",
+    defaultSettings: {
+        max_motor_power: 0.70,
+        deadzone: 0.10,
+        steering_gain: 1.00,
+        acceleration_rate: 1.00,
+        braking_rate: 1.80,
+        throttle_expo: 2.00,
+        steering_expo: 1.35,
+        pwm_frequency: 500,
+        quick_turn_throttle: 0.08,
+        pivot_turn_threshold: 0.68,
+        counter_rotation_max: 0.60,
+        inner_wheel_min_ratio: 0.18,
+        min_pwm_output: 0.00
+    },
+    presets: {
+        soft: { max_motor_power: 0.55, acceleration_rate: 0.70, braking_rate: 1.40, throttle_expo: 2.40, steering_expo: 1.60, steering_gain: 0.85, inner_wheel_min_ratio: 0.25, counter_rotation_max: 0.45 },
+        balanced: { max_motor_power: 0.70, acceleration_rate: 1.00, braking_rate: 1.80, throttle_expo: 2.00, steering_expo: 1.35, steering_gain: 1.00, inner_wheel_min_ratio: 0.18, counter_rotation_max: 0.60 },
+        sport: { max_motor_power: 0.85, acceleration_rate: 1.45, braking_rate: 2.30, throttle_expo: 1.65, steering_expo: 1.20, steering_gain: 1.15, inner_wheel_min_ratio: 0.12, counter_rotation_max: 0.70 }
+    },
+    settingGroups: [
+        {
+            title: "توان و PWM",
+            items: [
+                { title: "حداکثر سرعت", key: "max_motor_power", min: 0.05, max: 1, step: 0.05, format: "percent", help: "سقف توان PWM هر دو موتور. برای تست اولیه یا کاهش فشار روی گیربکس مقدار ۵۰ تا ۷۰ درصد امن‌تر است." },
+                { title: "فرکانس PWM", key: "pwm_frequency", min: 50, max: 4000, step: 50, format: "hz", help: "فرکانس سیگنال PWM درایور BTN7960. با اپتوکوپلر TLP281 معمولاً ۵۰۰Hz پایدار و قابل کنترل است؛ بک‌اند مقدار را به نزدیک‌ترین فرکانس مجاز گرد می‌کند." }
+            ]
+        },
+        {
+            title: "نرمی حرکت",
+            items: [
+                { title: "نرخ شتاب‌گیری", key: "acceleration_rate", min: 0.1, max: 4, step: 0.1, help: "سرعت افزایش تدریجی فرمان موتور. مقدار کمتر شروع حرکت را نرم‌تر می‌کند و شوک جریان و ضربه به دنده‌ها را کم می‌کند." },
+                { title: "نرخ ترمزگیری", key: "braking_rate", min: 0.2, max: 5, step: 0.1, help: "سرعت کم شدن فرمان موتور هنگام رها کردن گاز یا تغییر جهت. مقدار بالاتر توقف را تیزتر می‌کند، اما روی گیربکس سخت‌تر است." },
+                { title: "حداقل PWM شروع حرکت", key: "min_pwm_output", min: 0, max: 0.2, step: 0.01, format: "percent", help: "فقط وقتی موتور در توان خیلی کم صدا می‌دهد ولی نمی‌چرخد، این مقدار را کمی بالا ببرید. مقدار زیاد باعث پرش ناگهانی در شروع حرکت می‌شود." }
+            ]
+        },
+        {
+            title: "جوی‌استیک و حساسیت",
+            items: [
+                { title: "منحنی حساسیت گاز", key: "throttle_expo", min: 1, max: 5, step: 0.1, help: "عدد بزرگ‌تر، گاز کم را نرم‌تر و دقیق‌تر می‌کند. برای کنترل آرام در فضای کم، ۲ تا ۲.۵ مناسب است." },
+                { title: "حساسیت فرمان", key: "steering_gain", min: 0.2, max: 2, step: 0.05, help: "ضریب تقویت فرمان. اگر ماشین با فرمان کم بیش از حد تند می‌پیچد، مقدار را کمتر کنید." },
+                { title: "منحنی حساسیت فرمان", key: "steering_expo", min: 1, max: 3, step: 0.1, help: "عدد بزرگ‌تر، فرمان‌های کوچک را نرم‌تر می‌کند و در انتهای جوی‌استیک همچنان امکان چرخش کامل می‌دهد." },
+                { title: "نقطه مرده جوی‌استیک", key: "deadzone", min: 0, max: 0.35, step: 0.01, help: "حرکت‌های خیلی کوچک اطراف مرکز جوی‌استیک نادیده گرفته می‌شود تا لرزش دست یا خطای لمس باعث حرکت ناخواسته نشود." }
+            ]
+        },
+        {
+            title: "هندسه گردش",
+            items: [
+                { title: "مرز گردش درجا", key: "quick_turn_throttle", min: 0.02, max: 0.30, step: 0.01, help: "اگر مقدار گاز از این حد کمتر باشد، فرمان وارد منطق گردش درجا می‌شود. مقدار بیشتر، ورود به چرخش درجا را آسان‌تر می‌کند." },
+                { title: "آستانه شروع معکوس درجا", key: "pivot_turn_threshold", min: 0.35, max: 0.90, step: 0.01, help: "تا قبل از این آستانه، چرخ داخلی در گردش درجا ثابت می‌ماند. بعد از آن، چرخ داخلی آرام در جهت معکوس وارد مدار می‌شود." },
+                { title: "قدرت معکوس چرخ داخلی", key: "counter_rotation_max", min: 0, max: 1, step: 0.05, help: "حداکثر توان معکوس چرخ داخلی در چرخش درجا. برای کاهش فشار مکانیکی، معمولاً زیر ۷۰ درصد نگه دارید." },
+                { title: "حداقل نسبت چرخ داخلی در حرکت", key: "inner_wheel_min_ratio", min: 0, max: 0.5, step: 0.01, help: "در پیچ هنگام حرکت جلو یا عقب، چرخ داخلی کمتر از این نسبت کند نمی‌شود و معکوس نمی‌چرخد؛ این گزینه از گیر کردن و فشار به گیربکس کم می‌کند." }
+            ]
+        }
+    ]
+};
+
+let settings = loadSettings();
+let ws = null;
+let connected = false;
+let pingInterval = null;
+let reconnectTimer = null;
+let settingsSendTimeout = null;
+let throttleValue = 0;
+let steeringValue = 0;
+let driveSendTimeout = null;
+let lastDrivePayload = "";
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
 }
-setTheme(localStorage.theme === "dark" || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches));
-themeBtn.addEventListener("click", () => setTheme(!document.documentElement.classList.contains("dark")));
 
-// --- Settings Logic (Optimized, Linear with Steps) ---
-const defaultSettings = { max_motor_power: 0.70, deadzone: 0.10, steering_gain: 1.00, acceleration_rate: 1.00, braking_rate: 1.50, throttle_expo: 2.00, pwm_frequency: 500 };
-let settings = JSON.parse(localStorage.getItem("robot_settings")) || defaultSettings;
-
-function saveSettings() { 
-    localStorage.setItem("robot_settings", JSON.stringify(settings)); 
+function escapeHtml(value) {
+    return String(value).replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 }
 
-function createSlider(title, key, min, max, step, suffix = "", formatDigits = 2) {
-    let current = settings[key] !== undefined ? settings[key] : min;
-    let displayVal = current;
-    if (key === "max_motor_power") displayVal = Math.round(current * 100);
-    else if (key === "pwm_frequency") displayVal = Math.round(current);
-    else displayVal = Number(current).toFixed(formatDigits);
+function loadSettings() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(DATA.storageKey)) || {};
+        return { ...DATA.defaultSettings, ...saved };
+    } catch (_) {
+        return { ...DATA.defaultSettings };
+    }
+}
 
+function saveSettings() {
+    localStorage.setItem(DATA.storageKey, JSON.stringify(settings));
+}
+
+function displayValue(itemOrKey, value) {
+    const key = typeof itemOrKey === "string" ? itemOrKey : itemOrKey.key;
+    const format = typeof itemOrKey === "object" ? itemOrKey.format : null;
+    if (format === "percent" || key === "max_motor_power" || key === "min_pwm_output") return `${Math.round(Number(value) * 100)}%`;
+    if (format === "hz" || key === "pwm_frequency") return `${Math.round(Number(value))}Hz`;
+    return Number(value).toFixed(2);
+}
+
+function renderSlider(item) {
+    const current = settings[item.key] !== undefined ? settings[item.key] : item.min;
+    const safeHelp = escapeHtml(item.help);
+    const tooltipId = `tip_${item.key}`;
     return `
-    <div class="mb-2">
-        <div class="flex justify-between mb-3 text-sm">
-            <span class="font-bold text-gray-600 dark:text-gray-300">${title}</span>
-            <span id="val_${key}" class="slider-value font-black text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md shadow-sm">${displayVal}${suffix}</span>
+    <div class="mb-4">
+        <div class="flex justify-between items-center gap-3 mb-2 text-sm">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="font-bold text-gray-600 dark:text-gray-300">${escapeHtml(item.title)}</span>
+                <span class="help-wrap">
+                    <button type="button" class="help-button" aria-describedby="${tooltipId}" aria-expanded="false" title="${safeHelp}">؟</button>
+                    <span id="${tooltipId}" class="help-tooltip">${safeHelp}</span>
+                </span>
+            </div>
+            <span id="val_${item.key}" class="slider-value font-black text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md shadow-sm">${displayValue(item, current)}</span>
         </div>
-        <input id="${key}" type="range" min="${min}" max="${max}" step="${step}" value="${current}" 
-               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-500 hover:accent-blue-400 transition-colors">
+        <input id="${item.key}" type="range" min="${item.min}" max="${item.max}" step="${item.step}" value="${current}"
+               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 hover:accent-blue-400 transition-colors"
+               aria-label="${escapeHtml(item.title)}">
     </div>`;
 }
 
 function renderSettings() {
-    // ایجاد اسلایدرهای خطی و بهینه با قدم های دقیق خواسته شده
-    document.getElementById("settings-content").innerHTML = 
-        createSlider("حداکثر سرعت", "max_motor_power", 0.05, 1, 0.05, "%", 0) +
-        createSlider("فرکانس PWM", "pwm_frequency", 50, 4000, 50, "Hz", 0) +
-        createSlider("نرخ شتاب‌گیری", "acceleration_rate", 0.1, 2.5, 0.1, "") +
-        createSlider("نرخ ترمزگیری", "braking_rate", 0.1, 2.5, 0.1, "") +
-        createSlider("منحنی حساسیت گاز (Expo)", "throttle_expo", 1, 5, 0.1, "") +
-        createSlider("حساسیت فرمان", "steering_gain", 0.1, 2, 0.05, "") +
-        createSlider("نقطه مرده جوی‌استیک", "deadzone", 0, 0.4, 0.01, "");
-        
-    attachSliderEvents();
-}
+    DOM.settingsContent.innerHTML = DATA.settingGroups.map(group => `
+        <section class="rounded-2xl border border-gray-100 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/25">
+            <h3 class="text-xs font-black text-gray-400 dark:text-gray-500 mb-4 tracking-widest">${escapeHtml(group.title)}</h3>
+            ${group.items.map(renderSlider).join("")}
+        </section>
+    `).join("");
 
-// Throttler برای جلوگیری از شلوغ شدن شبکه حین کشیدن اسلایدر
-let settingsSendTimeout = null;
-function throttledSendSettings() {
-    if (!settingsSendTimeout && connected) {
-        settingsSendTimeout = setTimeout(() => {
-            ws.send(JSON.stringify({ type: "settings", settings }));
-            settingsSendTimeout = null;
-        }, 150); // ارسال آپدیت با حداکثر نرخ 6.6 هرتز
-    }
-}
-
-function attachSliderEvents() {
-    Object.keys(settings).forEach(key => {
-        const el = document.getElementById(key);
+    DATA.settingGroups.flatMap(group => group.items).forEach(item => {
+        const el = document.getElementById(item.key);
         if (!el) return;
-        
-        // رویداد Input: آپدیت UI و ارسال کنترل‌شده (بدون ذخیره در حافظه)
         el.addEventListener("input", () => {
-            settings[key] = parseFloat(el.value);
-            const label = document.getElementById(`val_${key}`);
-            
-            if (key === "max_motor_power") {
-                label.innerText = Math.round(settings[key] * 100) + "%";
-                DOM.motorPowerDisplay.innerText = label.innerText;
-            } else if (key === "pwm_frequency") {
-                label.innerText = Math.round(settings[key]) + "Hz";
-            } else {
-                label.innerText = settings[key].toFixed(2);
-            }
+            settings[item.key] = Number.parseFloat(el.value);
+            updateSliderLabel(item);
             throttledSendSettings();
         });
-
-        // رویداد Change (رها کردن اسلایدر): ذخیره قطعی در حافظه سخت
         el.addEventListener("change", () => {
             saveSettings();
-            if (connected) ws.send(JSON.stringify({ type: "settings", settings }));
+            sendSettingsNow();
+        });
+    });
+
+    initializeTooltips();
+}
+
+function initializeTooltips() {
+    const tooltipButtons = DOM.settingsContent.querySelectorAll(".help-button");
+
+    tooltipButtons.forEach(button => {
+        button.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const wrapper = button.closest(".help-wrap");
+            const shouldOpen = !wrapper.classList.contains("is-open");
+            closeAllTooltips();
+            wrapper.classList.toggle("is-open", shouldOpen);
+            button.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
         });
     });
 }
 
-// --- UI Components ---
-const modal = document.getElementById("settings-modal");
-const panel = document.getElementById("settings-panel");
-document.getElementById("settings-btn").addEventListener("click", () => { 
-    modal.classList.remove("hidden"); modal.classList.add("flex");
-    setTimeout(() => { modal.classList.remove("opacity-0"); panel.classList.remove("scale-95"); }, 10);
-});
-function closeModal() { 
-    modal.classList.add("opacity-0"); panel.classList.add("scale-95");
-    setTimeout(() => { modal.classList.add("hidden"); modal.classList.remove("flex"); }, 300);
+function closeAllTooltips() {
+    DOM.settingsContent.querySelectorAll(".help-wrap.is-open").forEach(wrapper => {
+        wrapper.classList.remove("is-open");
+        const button = wrapper.querySelector(".help-button");
+        if (button) button.setAttribute("aria-expanded", "false");
+    });
 }
-document.getElementById("close-settings").addEventListener("click", closeModal);
-modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
 
-document.getElementById("clear-logs").addEventListener("click", () => {
-    DOM.logContainer.innerHTML = "";
-});
+function updateSliderLabel(itemOrKey) {
+    const item = typeof itemOrKey === "string" ? findSettingItem(itemOrKey) : itemOrKey;
+    if (!item) return;
+    const label = document.getElementById(`val_${item.key}`);
+    if (label) label.innerText = displayValue(item, settings[item.key]);
+    if (item.key === "max_motor_power") DOM.motorPowerDisplay.innerText = displayValue(item, settings[item.key]);
+}
 
-renderSettings();
-DOM.motorPowerDisplay.innerText = Math.round(settings.max_motor_power * 100) + "%";
+function findSettingItem(key) {
+    return DATA.settingGroups.flatMap(group => group.items).find(item => item.key === key) || { key };
+}
 
-// --- WebSocket & Communication ---
-let ws, connected = false, pingInterval;
+function updateAllSliderLabels() {
+    DATA.settingGroups.flatMap(group => group.items).forEach(item => {
+        const el = document.getElementById(item.key);
+        if (el) el.value = settings[item.key];
+        updateSliderLabel(item);
+    });
+    saveSettings();
+}
 
-function connect() {
-    ws = new WebSocket(`ws://${location.host}/ws`);
-    ws.onopen = () => {
-        connected = true;
+function applySettingsFromServer(serverSettings) {
+    settings = { ...DATA.defaultSettings, ...serverSettings };
+    updateAllSliderLabels();
+}
+
+function applyPreset(name) {
+    settings = { ...settings, ...DATA.presets[name] };
+    updateAllSliderLabels();
+    sendSettingsNow();
+}
+
+function throttledSendSettings() {
+    if (!connected || settingsSendTimeout) return;
+    settingsSendTimeout = setTimeout(() => {
+        sendSettingsNow();
+        settingsSendTimeout = null;
+    }, 150);
+}
+
+function sendSettingsNow() {
+    if (connected && ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "settings", settings }));
+    }
+}
+
+function openSettingsModal() {
+    DOM.settingsModal.classList.remove("hidden");
+    DOM.settingsModal.classList.add("flex");
+    setTimeout(() => {
+        DOM.settingsModal.classList.remove("opacity-0");
+        DOM.settingsPanel.classList.remove("scale-95");
+    }, 10);
+}
+
+function closeSettingsModal() {
+    DOM.settingsModal.classList.add("opacity-0");
+    DOM.settingsPanel.classList.add("scale-95");
+    setTimeout(() => {
+        DOM.settingsModal.classList.add("hidden");
+        DOM.settingsModal.classList.remove("flex");
+    }, 260);
+}
+
+function setTheme(dark) {
+    document.documentElement.classList.toggle("dark", dark);
+    localStorage.theme = dark ? "dark" : "light";
+    document.getElementById("theme-toggle").innerText = dark ? "☀️" : "🌙";
+}
+
+function setConnectionState(isConnected) {
+    connected = isConnected;
+    if (isConnected) {
         DOM.statusBadge.innerText = "متصل";
         DOM.statusBadge.className = "px-4 py-1.5 rounded-full bg-green-500 text-white text-[10px] font-bold tracking-widest shadow-md shadow-green-500/30 animate-pulse";
-        ws.send(JSON.stringify({ type: "settings", settings }));
-        pingInterval = setInterval(() => { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "ping" })); }, 200);
-    };
-    ws.onclose = () => {
-        connected = false;
+    } else {
         DOM.statusBadge.innerText = "قطع ارتباط";
         DOM.statusBadge.className = "px-4 py-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold tracking-widest shadow-md shadow-red-500/30";
+    }
+}
+
+function connect() {
+    const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+    ws = new WebSocket(`${wsProtocol}://${location.host}/ws`);
+
+    ws.onopen = () => {
+        setConnectionState(true);
+        sendSettingsNow();
         clearInterval(pingInterval);
-        setTimeout(connect, 2000);
+        pingInterval = setInterval(() => {
+            if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "ping" }));
+        }, 220);
     };
+
+    ws.onclose = () => {
+        setConnectionState(false);
+        clearInterval(pingInterval);
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connect, 1400);
+    };
+
+    ws.onerror = () => setConnectionState(false);
+
     ws.onmessage = event => {
-        const data = JSON.parse(event.data);
-        if (data.type === "telemetry") updateTelemetry(data);
-        if (data.type === "log") appendLog(data.level, data.message);
-        
-        if (data.type === "settings" && data.settings) {
-            settings = data.settings;
-            Object.keys(settings).forEach(key => {
-                const el = document.getElementById(key);
-                const label = document.getElementById(`val_${key}`);
-                if (el) el.value = settings[key];
-                if (label) {
-                    if (key === "max_motor_power") {
-                        label.innerText = Math.round(settings[key] * 100) + "%";
-                        DOM.motorPowerDisplay.innerText = label.innerText;
-                    } else if (key === "pwm_frequency") {
-                        label.innerText = Math.round(settings[key]) + "Hz";
-                    } else {
-                        label.innerText = Number(settings[key]).toFixed(2);
-                    }
-                }
-            });
-            saveSettings();
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === "telemetry") updateTelemetry(data);
+            else if (data.type === "log") appendLog(data.level, data.message);
+            else if (data.type === "settings" && data.settings) applySettingsFromServer(data.settings);
+        } catch (error) {
+            appendLog("WARNING", `Invalid message from server: ${error.message}`);
         }
     };
 }
-connect();
 
-// --- Gauge Logic ---
+function updateMotorBar(bar, label, value) {
+    const safeValue = Number(value) || 0;
+    const magnitude = clamp(Math.abs(safeValue), 0, 100);
+    bar.style.width = `${magnitude}%`;
+    label.innerText = `${Math.round(safeValue)}%`;
+}
+
 function updateGauge(leftMotor, rightMotor) {
-    const avgSpeed = (leftMotor + rightMotor) / 2;
-    const tilt = (leftMotor - rightMotor) / 2;
-    const absSpeed = Math.abs(avgSpeed);
-    
-    // آپدیت قوس (حداکثر 251.2 برای این SVG)
-    const maxDash = 251.2;
-    const offset = maxDash - (absSpeed / 100) * maxDash;
-    DOM.gaugeFill.style.strokeDashoffset = offset;
-    
-    // آپدیت متن 
-    DOM.gaugeText.innerText = Math.round(absSpeed) + '%';
-    
-    // آپدیت LED (ساده و سریع بدون تغییر className سنگین)
-    if (avgSpeed < -1) {
-        DOM.reverseLed.style.backgroundColor = "#ef4444"; // قرمز
+    const left = Number(leftMotor) || 0;
+    const right = Number(rightMotor) || 0;
+    const motorDemand = clamp(Math.max(Math.abs(left), Math.abs(right)), 0, 100);
+    const translation = (left + right) / 2;
+    const tilt = (left - right) / 2;
+    const dashOffset = 100 - motorDemand;
+
+    DOM.gaugeFill.style.strokeDashoffset = String(dashOffset);
+    DOM.gaugeFill.style.opacity = motorDemand > 0.4 ? "1" : "0";
+    DOM.gaugeText.innerText = `${Math.round(motorDemand)}%`;
+    DOM.gaugeContainer.style.transform = `rotate(${tilt * 0.22}deg)`;
+
+    if (Math.abs(translation) < 1 && Math.abs(left - right) > 2) DOM.gaugeDirectionLabel.innerText = "چرخش";
+    else if (translation > 1) DOM.gaugeDirectionLabel.innerText = "جلو";
+    else if (translation < -1) DOM.gaugeDirectionLabel.innerText = "عقب";
+    else DOM.gaugeDirectionLabel.innerText = "آماده";
+
+    if (translation < -1) {
+        DOM.reverseLed.style.backgroundColor = "#ef4444";
         DOM.reverseLed.style.boxShadow = "0 0 8px #ef4444";
     } else {
         DOM.reverseLed.style.backgroundColor = document.documentElement.classList.contains("dark") ? "#374151" : "#e5e7eb";
         DOM.reverseLed.style.boxShadow = "none";
     }
-    
-    // خم شدن گیج با CSS Transform که روی GPU اجرا می‌شود
-    DOM.gaugeContainer.style.transform = `rotate(${tilt * 0.25}deg)`;
+
+    updateMotorBar(DOM.leftMotorBar, DOM.leftMotorVal, left);
+    updateMotorBar(DOM.rightMotorBar, DOM.rightMotorVal, right);
 }
 
-function updateTelemetry(d) {
-    DOM.cpuVal.innerText = Math.round(d.cpu) + "%";
-    DOM.cpuBar.style.width = d.cpu + "%";
-    DOM.ramVal.innerText = Math.round(d.ram) + "%";
-    DOM.ramBar.style.width = d.ram + "%";
-    DOM.tempVal.innerText = d.temp + "°C";
-    DOM.tempBar.style.width = Math.min(d.temp, 100) + "%";
-    DOM.wifiVal.innerText = d.wifi + "%";
-    DOM.wifiBar.style.width = d.wifi + "%";
+function updateTelemetry(data) {
+    const cpu = clamp(Number(data.cpu) || 0, 0, 100);
+    const ram = clamp(Number(data.ram) || 0, 0, 100);
+    const temp = clamp(Number(data.temp) || 0, 0, 100);
+    const wifi = clamp(Number(data.wifi) || 0, 0, 100);
+    const powerOk = data.power_ok !== false;
 
-    if (d.left_motor !== undefined && d.right_motor !== undefined) {
-        updateGauge(d.left_motor, d.right_motor);
-    }
+    DOM.cpuVal.innerText = `${Math.round(cpu)}%`;
+    DOM.cpuBar.style.width = `${cpu}%`;
+    DOM.ramVal.innerText = `${Math.round(ram)}%`;
+    DOM.ramBar.style.width = `${ram}%`;
+    DOM.tempVal.innerText = `${Number(data.temp || 0).toFixed(1)}°C`;
+    DOM.tempBar.style.width = `${temp}%`;
+    DOM.wifiVal.innerText = `${Math.round(wifi)}%`;
+    DOM.wifiBar.style.width = `${wifi}%`;
+    DOM.powerVal.innerText = powerOk ? "OK" : "LOW";
+    DOM.powerVal.className = powerOk ? "font-mono text-emerald-600 dark:text-emerald-300" : "font-mono text-red-600 dark:text-red-300";
+    DOM.powerBar.style.width = powerOk ? "100%" : "35%";
+    DOM.powerBar.className = powerOk ? "progress-bar bg-emerald-500 h-1 rounded-full" : "progress-bar bg-red-500 h-1 rounded-full";
+    DOM.driveMode.innerText = data.drive_mode || "idle";
+
+    if (data.motor_power !== undefined) DOM.motorPowerDisplay.innerText = `${Math.round(Number(data.motor_power))}%`;
+    if (data.left_motor !== undefined && data.right_motor !== undefined) updateGauge(data.left_motor, data.right_motor);
 }
 
-function appendLog(level, message) {
-    const el = document.createElement("div");
+function appendLog(level = "INFO", message = "") {
+    const entry = document.createElement("div");
     let colorClass = "text-gray-500 dark:text-gray-400";
     if (level === "ERROR") colorClass = "text-red-500 font-bold bg-red-50 dark:bg-red-900/20 px-2 rounded";
     else if (level === "WARNING") colorClass = "text-amber-500 dark:text-amber-400";
-    
-    el.className = `py-1 border-b border-gray-100 dark:border-gray-800/50 mb-1 ${colorClass}`;
-    el.innerText = `[${level}] ${message}`;
-    DOM.logContainer.appendChild(el);
+    entry.className = `py-1 border-b border-gray-100 dark:border-gray-800/50 mb-1 ${colorClass}`;
+    entry.innerText = `[${level}] ${message}`;
+    DOM.logContainer.appendChild(entry);
+    while (DOM.logContainer.children.length > 120) DOM.logContainer.removeChild(DOM.logContainer.firstChild);
     DOM.logContainer.scrollTop = DOM.logContainer.scrollHeight;
 }
 
-// --- Driving Controls ---
-let throttleValue = 0, steeringValue = 0;
-let driveSendTimeout = null;
-
-// Throttler برای فرامین رانندگی (تضمین ارسال حداکثر 30 فریم بر ثانیه برای جلوگیری از قفل شدن سرور)
-function sendDrive() { 
-    if (!connected) return;
-    if (!driveSendTimeout) {
-        ws.send(JSON.stringify({ 
-            type: "drive", 
-            throttle: Number(throttleValue.toFixed(3)), 
-            steering: Number(steeringValue.toFixed(3)) 
-        }));
-        driveSendTimeout = setTimeout(() => {
-            driveSendTimeout = null;
-        }, 33); // ~30Hz
-    }
+function transmitDrive(force = false) {
+    if (!connected || ws?.readyState !== WebSocket.OPEN) return;
+    const payload = JSON.stringify({
+        type: "drive",
+        throttle: Number(throttleValue.toFixed(3)),
+        steering: Number(steeringValue.toFixed(3))
+    });
+    if (!force && payload === lastDrivePayload) return;
+    ws.send(payload);
+    lastDrivePayload = payload;
 }
 
-const stickOptions = { mode: "static", position: { left: "50%", top: "50%" }, color: "currentColor", size: 120 };
+function sendDrive(force = false) {
+    if (force) {
+        clearTimeout(driveSendTimeout);
+        driveSendTimeout = null;
+        transmitDrive(true);
+        return;
+    }
+    if (driveSendTimeout) return;
+    transmitDrive(false);
+    driveSendTimeout = setTimeout(() => { driveSendTimeout = null; }, 33);
+}
 
-const throttleStick = nipplejs.create({ ...stickOptions, zone: document.getElementById("throttle-zone"), lockY: true });
-throttleStick.on("move", (evt, data) => {
-    const force = Math.min(data.force, 1);
-    throttleValue = Math.max(-1, Math.min(1, Math.sin(data.angle.radian) * force));
-    sendDrive();
-});
-throttleStick.on("end", () => { throttleValue = 0; setTimeout(sendDrive, 40); /* تضمین ارسال استاپ */ });
+function stopJoysticksAndSend() {
+    throttleValue = 0;
+    steeringValue = 0;
+    sendDrive(true);
+}
 
-const steeringStick = nipplejs.create({ ...stickOptions, zone: document.getElementById("steering-zone"), lockX: true });
-steeringStick.on("move", (evt, data) => {
-    const force = Math.min(data.force, 1);
-    steeringValue = Math.max(-1, Math.min(1, Math.cos(data.angle.radian) * force));
-    sendDrive();
-});
-steeringStick.on("end", () => { steeringValue = 0; setTimeout(sendDrive, 40); });
+function emergencyStop() {
+    stopJoysticksAndSend();
+    if (connected && ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "emergency_stop" }));
+    if (navigator.vibrate) navigator.vibrate(80);
+}
+
+function initializeJoysticks() {
+    const stickOptions = { mode: "static", position: { left: "50%", top: "50%" }, color: "currentColor", size: 120 };
+
+    const throttleStick = nipplejs.create({ ...stickOptions, zone: document.getElementById("throttle-zone"), lockY: true });
+    throttleStick.on("move", (_event, data) => {
+        const force = Math.min(data.force || 0, 1);
+        throttleValue = clamp(Math.sin(data.angle.radian) * force, -1, 1);
+        sendDrive(false);
+    });
+    throttleStick.on("end", stopJoysticksAndSend);
+
+    const steeringStick = nipplejs.create({ ...stickOptions, zone: document.getElementById("steering-zone"), lockX: true });
+    steeringStick.on("move", (_event, data) => {
+        const force = Math.min(data.force || 0, 1);
+        steeringValue = clamp(Math.cos(data.angle.radian) * force, -1, 1);
+        sendDrive(false);
+    });
+    steeringStick.on("end", () => {
+        steeringValue = 0;
+        sendDrive(true);
+    });
+}
+
+function initializeUI() {
+    const prefersDark = localStorage.theme === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    setTheme(prefersDark);
+    renderSettings();
+    updateAllSliderLabels();
+    updateGauge(0, 0);
+
+    document.getElementById("theme-toggle").addEventListener("click", () => setTheme(!document.documentElement.classList.contains("dark")));
+    document.getElementById("settings-btn").addEventListener("click", openSettingsModal);
+    document.getElementById("close-settings").addEventListener("click", closeSettingsModal);
+    document.getElementById("clear-logs").addEventListener("click", () => { DOM.logContainer.innerHTML = ""; });
+    document.getElementById("reset-settings").addEventListener("click", () => {
+        settings = { ...DATA.defaultSettings };
+        updateAllSliderLabels();
+        sendSettingsNow();
+    });
+    document.querySelectorAll(".preset-btn").forEach(button => button.addEventListener("click", () => applyPreset(button.dataset.preset)));
+    DOM.settingsModal.addEventListener("click", event => {
+        if (event.target === DOM.settingsModal) closeSettingsModal();
+        else if (!event.target.closest(".help-wrap")) closeAllTooltips();
+    });
+    DOM.settingsPanel.addEventListener("scroll", closeAllTooltips, { passive: true });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            closeAllTooltips();
+            closeSettingsModal();
+        }
+    });
+
+    document.getElementById("emergency-stop").addEventListener("click", emergencyStop);
+    window.addEventListener("blur", stopJoysticksAndSend);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) stopJoysticksAndSend(); });
+
+    initializeJoysticks();
+    connect();
+}
+
+initializeUI();
 </script>
 </body>
 </html>
