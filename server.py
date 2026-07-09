@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import math
+import mimetypes
 import subprocess
 import time
 from pathlib import Path
@@ -75,6 +76,15 @@ background_tasks_started = False
 BASE_DIR = Path(__file__).resolve().parent
 DASHBOARD_TEMPLATE = BASE_DIR / "templates" / "index.html"
 STATIC_DIR = BASE_DIR / "static"
+
+# The system mimetypes database is inconsistent across platforms (a fresh
+# Windows dev machine and a Raspberry Pi's Linux install can disagree on
+# font types), which breaks font preloading. Register the ones the
+# dashboard actually serves explicitly so behavior is identical everywhere.
+mimetypes.add_type("font/ttf", ".ttf")
+mimetypes.add_type("font/woff", ".woff")
+mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("image/svg+xml", ".svg")
 
 if STATIC_DIR.is_dir():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

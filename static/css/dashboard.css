@@ -4,10 +4,40 @@
   dashboard keeps working with zero network access.
 */
 
+/* Vazirmatn is a variable font (weight axis 100-900 in one file), so a
+   single local face covers every weight used across the dashboard (400
+   body text, 700/900 headings and labels) without extra requests. */
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("../fonts/Vazirmatn-VariableFont_wght.ttf") format("truetype-variations"),
+         url("../fonts/Vazirmatn-VariableFont_wght.ttf") format("truetype");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Static instances as a safety net for the rare engine that fails to
+   resolve variable-font weight interpolation. */
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("../fonts/Vazirmatn-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("../fonts/Vazirmatn-Bold.ttf") format("truetype");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     color-scheme: light dark;
 
-    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Vazirmatn", sans-serif;
+    --font-sans: "Vazirmatn", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
     --bg: #eef1f6;
