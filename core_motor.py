@@ -8,7 +8,14 @@ from dataclasses import asdict, dataclass
 from typing import Optional, Tuple
 
 try:
-    from gpiozero import PWMOutputDevice
+    from gpiozero import Device, PWMOutputDevice
+
+    # Importing gpiozero always succeeds (it's pure Python), but it only
+    # produces a *working* PWM device if a real pin factory backend
+    # (lgpio/RPi.GPIO/pigpio) can be initialized. On non-Raspberry Pi
+    # machines this raises at first device construction, so probe it here
+    # to fall back to dry-run mode instead of crashing the whole server.
+    Device.ensure_pin_factory()
 except Exception:  # pragma: no cover - keeps the app importable on non-Raspberry Pi machines
     PWMOutputDevice = None
 

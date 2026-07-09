@@ -37,7 +37,65 @@
     <style>
         body { font-family: 'Vazirmatn', sans-serif; background-color: #f8fafc; color: #0f172a; transition: background-color 0.3s, color 0.3s; }
         .dark body { background-color: #0f172a; color: #f8fafc; }
-        
+
+        /* Animated hero gradient backdrop */
+        .hero-wrap { position: relative; overflow: hidden; }
+        .hero-blob {
+            position: absolute; border-radius: 9999px; filter: blur(70px); opacity: 0.35;
+            animation: blobFloat 16s ease-in-out infinite; z-index: 0; pointer-events: none;
+        }
+        .hero-blob.b1 { width: 420px; height: 420px; background: #3b82f6; top: -140px; right: -80px; }
+        .hero-blob.b2 { width: 380px; height: 380px; background: #10b981; bottom: -160px; left: -100px; animation-delay: -6s; }
+        .hero-blob.b3 { width: 260px; height: 260px; background: #a855f7; top: 40%; left: 50%; animation-delay: -11s; opacity: 0.22; }
+        @keyframes blobFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-20px, 25px) scale(1.08); }
+            66% { transform: translate(15px, -20px) scale(0.95); }
+        }
+        .hero-content { position: relative; z-index: 1; }
+
+        /* Glowing gradient CTA buttons */
+        .glow-btn {
+            display: inline-flex; align-items: center; gap: .5rem;
+            padding: .8rem 1.6rem; border-radius: 9999px; font-weight: 700; font-size: .95rem;
+            background: linear-gradient(90deg, #2563eb, #059669); color: #fff !important;
+            box-shadow: 0 8px 24px -8px rgba(37, 99, 235, 0.55);
+            transition: transform .25s ease, box-shadow .25s ease; text-decoration: none;
+        }
+        .glow-btn:hover { transform: translateY(-3px); box-shadow: 0 14px 32px -8px rgba(37, 99, 235, 0.7); }
+        .glow-btn.outline {
+            background: transparent; color: inherit !important; box-shadow: none;
+            border: 1.5px solid rgba(100, 116, 139, 0.35);
+        }
+        .dark .glow-btn.outline { border-color: rgba(148, 163, 184, 0.35); }
+        .glow-btn.outline:hover { border-color: #3b82f6; box-shadow: 0 8px 20px -10px rgba(59,130,246,.4); }
+
+        /* Status badge pills */
+        .status-pill {
+            display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; font-weight: 700;
+            padding: .35rem .85rem; border-radius: 9999px; background: rgba(148,163,184,.12);
+            border: 1px solid rgba(148,163,184,.25); color: inherit;
+        }
+        .status-pill .dot { width: .5rem; height: .5rem; border-radius: 9999px; background: #10b981; box-shadow: 0 0 8px #10b981; }
+
+        /* Glass panel used for nav + feature cards */
+        .glass-card {
+            background: rgba(255,255,255,.65); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(226,232,240,.7);
+        }
+        .dark .glass-card { background: rgba(21, 30, 46, .55); border-color: rgba(51,65,85,.5); }
+
+        .feature-card { transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease; }
+        .feature-card:hover { transform: translateY(-6px); border-color: #3b82f6; box-shadow: 0 16px 40px -18px rgba(59,130,246,.45); }
+
+        /* Reveal-on-scroll (progressive enhancement, purely cosmetic) */
+        .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+        .reveal.is-visible { opacity: 1; transform: translateY(0); }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-blob { animation: none; }
+            .reveal { transition: none; opacity: 1; transform: none; }
+        }
+
         /* Required Chart Container Styling */
         .chart-container {
             position: relative;
@@ -102,10 +160,16 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+    <nav class="glass-card sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <div class="text-xl font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-600 to-emerald-500">
                 🏎️ تله‌متری رباتیک
+            </div>
+            <div class="hidden md:flex items-center gap-6 text-sm font-bold text-slate-600 dark:text-slate-300">
+                <a href="#software" class="hover:text-blue-500 transition">داشبورد آفلاین</a>
+                <a href="#safety" class="hover:text-blue-500 transition">ایمنی</a>
+                <a href="#deployment" class="hover:text-blue-500 transition">راه‌اندازی</a>
+                <a href="https://github.com/hereisreza/raspberry-car" target="_blank" rel="noopener" class="hover:text-blue-500 transition">گیت‌هاب</a>
             </div>
             <button id="themeToggle" class="p-2 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
                 <span id="themeIcon" class="text-xl">☀️</span>
@@ -114,24 +178,69 @@
     </nav>
 
     <!-- Hero Section -->
-    <header class="max-w-4xl mx-auto px-4 py-16 text-center">
-        <h1 class="text-4xl md:text-6xl font-black mb-6 text-slate-800 dark:text-white leading-tight">
-            سیستم کنترل رباتیک و <br>
-            <span class="text-blue-600 dark:text-blue-400">تله‌متری بلادرنگ</span>
-        </h1>
-        <p class="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
-            پلتفرم حرفه‌ای برای هدایت ماشین‌های (Differential Drive) مبتنی بر وب. تلفیق سخت‌افزار صنعتی با معماری نرم‌افزاری Low-Latency.
-        </p>
-        <div class="inline-flex items-center gap-2 bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded-full text-sm font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
-            <span>✉️</span>
-            <a href="mailto:alavi.amirreza75@gmail.com" class="hover:text-blue-500 transition">alavi.amirreza75@gmail.com</a>
+    <header class="hero-wrap">
+        <div class="hero-blob b1"></div>
+        <div class="hero-blob b2"></div>
+        <div class="hero-blob b3"></div>
+        <div class="hero-content max-w-4xl mx-auto px-4 py-20 text-center">
+            <div class="flex flex-wrap justify-center gap-2 mb-6">
+                <span class="status-pill"><span class="dot"></span> پروژه فعال و پایدار</span>
+                <span class="status-pill">نسخه ۱.۰۰</span>
+                <span class="status-pill">Raspberry Pi Zero 2 W</span>
+                <span class="status-pill">داشبورد ۱۰۰٪ آفلاین</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-black mb-6 text-slate-800 dark:text-white leading-tight">
+                سیستم کنترل رباتیک و <br>
+                <span class="text-blue-600 dark:text-blue-400">تله‌متری بلادرنگ</span>
+            </h1>
+            <p class="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-10 leading-relaxed">
+                پلتفرم حرفه‌ای برای هدایت ماشین‌های (Differential Drive) مبتنی بر وب. تلفیق سخت‌افزار صنعتی با معماری نرم‌افزاری Low-Latency و داشبورد کنترلی کاملاً آفلاین روی رسپبری‌پای.
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-4 mb-8">
+                <a href="https://github.com/hereisreza/raspberry-car" target="_blank" rel="noopener" class="glow-btn">
+                    <span>💻</span> مشاهده کد در گیت‌هاب
+                </a>
+                <a href="#deployment" class="glow-btn outline">
+                    <span>🚀</span> راهنمای راه‌اندازی
+                </a>
+            </div>
+            <div class="inline-flex items-center gap-2 bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded-full text-sm font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+                <span>✉️</span>
+                <a href="mailto:alavi.amirreza75@gmail.com" class="hover:text-blue-500 transition">alavi.amirreza75@gmail.com</a>
+            </div>
         </div>
     </header>
+
+    <!-- Quick Feature Highlights -->
+    <section class="max-w-7xl mx-auto px-4 mb-4 reveal">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="feature-card glass-card rounded-2xl p-5 text-center">
+                <div class="text-3xl mb-2">🕹️</div>
+                <div class="font-bold text-sm dark:text-white">کنترل بلادرنگ</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">WebSocket با تاخیر بسیار کم</div>
+            </div>
+            <div class="feature-card glass-card rounded-2xl p-5 text-center">
+                <div class="text-3xl mb-2">📡</div>
+                <div class="font-bold text-sm dark:text-white">داشبورد آفلاین</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">بدون نیاز به اینترنت یا CDN</div>
+            </div>
+            <div class="feature-card glass-card rounded-2xl p-5 text-center">
+                <div class="text-3xl mb-2">🛡️</div>
+                <div class="font-bold text-sm dark:text-white">ایمنی چندلایه</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">Watchdog، توقف اضطراری، Slew-rate</div>
+            </div>
+            <div class="feature-card glass-card rounded-2xl p-5 text-center">
+                <div class="text-3xl mb-2">⚙️</div>
+                <div class="font-bold text-sm dark:text-white">موتور صنعتی</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">درایور BTN7960 تا ۴۳ آمپر</div>
+            </div>
+        </div>
+    </section>
 
     <main class="max-w-7xl mx-auto px-4 pb-20 space-y-24">
 
         <!-- Section 1: Visual Overview (Gallery) -->
-        <section id="gallery">
+        <section id="gallery" class="reveal">
             <div class="mb-8">
                 <h2 class="text-3xl font-bold mb-2 dark:text-white">📸 نگاهی به سخت‌افزار فیزیکی</h2>
                 <p class="text-slate-600 dark:text-slate-400">نمای کلی از شاسی، کابل‌کشی، قرارگیری درایورها و هسته پردازشی رسپبری‌پای.</p>
@@ -148,7 +257,7 @@
         </section>
 
         <!-- Section 2: Electronics & Schematics -->
-        <section id="hardware">
+        <section id="hardware" class="reveal">
             <div class="mb-8">
                 <h2 class="text-3xl font-bold mb-2 dark:text-white">⚙️ معماری الکترونیک و اتصالات</h2>
                 <p class="text-slate-600 dark:text-slate-400">طراحی مدارات ایزولاسیون، توزیع قدرت و راه‌اندازی موتورها.</p>
@@ -196,7 +305,7 @@
         </section>
 
         <!-- Section 3: Software & UI -->
-        <section id="software" class="bg-blue-50 dark:bg-slate-850 rounded-3xl p-8 border border-blue-100 dark:border-slate-800">
+        <section id="software" class="bg-blue-50 dark:bg-slate-850 rounded-3xl p-8 border border-blue-100 dark:border-slate-800 reveal">
             <div class="grid lg:grid-cols-2 gap-12 items-center">
                 <div class="space-y-6">
                     <div>
@@ -239,8 +348,67 @@
             </div>
         </section>
 
+        <!-- Section 3.5: Offline Dashboard -->
+        <section id="offline-dashboard" class="reveal">
+            <div class="mb-8 text-center">
+                <h2 class="text-3xl font-bold mb-4 dark:text-white">📡 داشبورد کنترلی ۱۰۰٪ آفلاین</h2>
+                <p class="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+                    داشبورد کنترل ربات (که روی خود رسپبری‌پای اجرا و از طریق شبکه محلی باز می‌شود) کاملاً مستقل از اینترنت است؛ برخلاف همین صفحه معرفی که برای GitHub Pages ساخته شده.
+                </p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="feature-card bg-white dark:bg-slate-850 rounded-2xl p-6 border border-slate-200 dark:border-slate-800">
+                    <div class="text-2xl mb-3">🚫🌐</div>
+                    <h4 class="font-bold mb-2 dark:text-white">بدون CDN و فونت اینترنتی</h4>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">تمام CSS، جاوااسکریپت و فونت‌ها به صورت لوکال از پوشه <code>static/</code> سرو می‌شوند؛ حتی جوی‌استیک هم پیاده‌سازی خالص جاوااسکریپت است.</p>
+                </div>
+                <div class="feature-card bg-white dark:bg-slate-850 rounded-2xl p-6 border border-slate-200 dark:border-slate-800">
+                    <div class="text-2xl mb-3">📶</div>
+                    <h4 class="font-bold mb-2 dark:text-white">فقط شبکه محلی (LAN)</h4>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">با اتصال موبایل یا لپ‌تاپ به همان Wi-Fi رسپبری‌پای و باز کردن آی‌پی آن، داشبورد بدون هیچ وابستگی بیرونی کار می‌کند.</p>
+                </div>
+                <div class="feature-card bg-white dark:bg-slate-850 rounded-2xl p-6 border border-slate-200 dark:border-slate-800">
+                    <div class="text-2xl mb-3">⚡</div>
+                    <h4 class="font-bold mb-2 dark:text-white">سبک و سریع روی Pi Zero</h4>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">بدون فریمورک سنگین؛ CSS و جاوااسکریپت دستی و بهینه برای سخت‌افزار محدود رسپبری‌پای زیرو نوشته شده‌اند.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3.6: Safety Features -->
+        <section id="safety" class="bg-red-50/60 dark:bg-slate-850 rounded-3xl p-8 border border-red-100 dark:border-slate-800 reveal">
+            <div class="mb-8 text-center">
+                <h2 class="text-3xl font-bold mb-4 dark:text-white">🛡️ ایمنی به عنوان اولویت اول</h2>
+                <p class="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+                    کنترل موتورهای پرقدرت از راه دور نیازمند چند لایه محافظتی مستقل است تا هرگونه قطعی ارتباط یا خطای نرم‌افزاری به توقف امن ربات ختم شود.
+                </p>
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="feature-card glass-card rounded-2xl p-5">
+                    <div class="text-2xl mb-2">💓</div>
+                    <h4 class="font-bold text-sm mb-1 dark:text-white">Watchdog ضربان قلب</h4>
+                    <p class="text-xs text-slate-600 dark:text-slate-400">در صورت قطع ارسال Heartbeat از مرورگر، سرور در کمتر از ۶۰۰ میلی‌ثانیه موتورها را متوقف می‌کند.</p>
+                </div>
+                <div class="feature-card glass-card rounded-2xl p-5">
+                    <div class="text-2xl mb-2">🛑</div>
+                    <h4 class="font-bold text-sm mb-1 dark:text-white">توقف اضطراری</h4>
+                    <p class="text-xs text-slate-600 dark:text-slate-400">دکمه STOP همیشه در دسترس، هر خطای اتصال و رها شدن تب مرورگر بلافاصله فرمان توقف صادر می‌کند.</p>
+                </div>
+                <div class="feature-card glass-card rounded-2xl p-5">
+                    <div class="text-2xl mb-2">📉</div>
+                    <h4 class="font-bold text-sm mb-1 dark:text-white">محدودسازی شتاب (Slew-rate)</h4>
+                    <p class="text-xs text-slate-600 dark:text-slate-400">تغییرات فرمان موتور به صورت نرم اعمال می‌شود تا از شوک جریان به باتری و گیربکس جلوگیری شود.</p>
+                </div>
+                <div class="feature-card glass-card rounded-2xl p-5">
+                    <div class="text-2xl mb-2">🔌</div>
+                    <h4 class="font-bold text-sm mb-1 dark:text-white">ایزولاسیون الکتریکی</h4>
+                    <p class="text-xs text-slate-600 dark:text-slate-400">اپتوکوپلر TLP281 مدار فرمان رسپبری‌پای را به طور کامل از مدار قدرت درایورها جدا می‌کند.</p>
+                </div>
+            </div>
+        </section>
+
         <!-- Section 4: Algorithmic Insight (Interactive Chart) -->
-        <section id="algorithm">
+        <section id="algorithm" class="reveal">
             <div class="mb-8 text-center">
                 <h2 class="text-3xl font-bold mb-4 dark:text-white">📈 تحلیل الگوریتم حرکتی (Throttle Expo)</h2>
                 <p class="text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
@@ -267,7 +435,7 @@
         </section>
 
         <!-- Section 5: Engineering Challenges -->
-        <section id="challenges">
+        <section id="challenges" class="reveal">
             <div class="mb-8 text-center">
                 <h2 class="text-3xl font-bold mb-4 dark:text-white">🛠️ چالش‌های مهندسی سخت‌افزار/نرم‌افزار</h2>
                 <p class="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
@@ -327,7 +495,7 @@
         </section>
 
         <!-- Section 6: Setup Guide (Terminal Tabs) -->
-        <section id="deployment">
+        <section id="deployment" class="reveal">
             <div class="mb-8 text-center">
                 <h2 class="text-3xl font-bold mb-4 dark:text-white">💻 راهنمای راه‌اندازی (Deployment)</h2>
                 <p class="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
@@ -417,8 +585,17 @@ WantedBy=multi-user.target
 
     <!-- Footer -->
     <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-10 text-center text-slate-500 dark:text-slate-400">
+        <div class="flex flex-wrap justify-center gap-2 mb-4">
+            <span class="status-pill">نسخه ۱.۰۰</span>
+            <span class="status-pill">مجوز Apache 2.0</span>
+            <span class="status-pill">FastAPI + WebSocket</span>
+            <span class="status-pill">داشبورد آفلاین رسپبری‌پای</span>
+        </div>
         <p class="font-bold mb-2">توسعه و مهندسی: علوی - ۲۰۲۶ ©</p>
-        <p class="text-sm">طراحی شده جهت معرفی و مستندسازی پروژه ماشین کنترلی تحت وب.</p>
+        <p class="text-sm">طراحی شده جهت معرفی و مستندسازی پروژه ماشین کنترلی تحت وب. این صفحه صرفاً یک ویترین عمومی است و به موتورهای ربات متصل نمی‌شود.</p>
+        <a href="https://github.com/hereisreza/raspberry-car" target="_blank" rel="noopener" class="glow-btn outline mt-5">
+            <span>💻</span> کد منبع در گیت‌هاب
+        </a>
     </footer>
 
     <!-- JavaScript Logic -->
@@ -594,6 +771,21 @@ WantedBy=multi-user.target
             expoChart.data.datasets[1].data = newData.expoData;
             expoChart.update();
         });
+
+        // --- Reveal-on-scroll (cosmetic only, no external library) ---
+        if ("IntersectionObserver" in window) {
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add("is-visible");
+                        revealObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12 });
+            document.querySelectorAll(".reveal").forEach(el => revealObserver.observe(el));
+        } else {
+            document.querySelectorAll(".reveal").forEach(el => el.classList.add("is-visible"));
+        }
 
         // --- Accordion Logic ---
         function toggleAccordion(id) {

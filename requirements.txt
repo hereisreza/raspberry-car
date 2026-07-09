@@ -3,4 +3,8 @@ uvicorn>=0.22.0
 websockets>=11.0.3
 psutil>=5.9.5
 gpiozero>=2.0.1
-lgpio>=0.2.2.0
+
+# lgpio is the Raspberry Pi GPIO backend used by gpiozero; it only builds on
+# Linux. On other platforms (e.g. Windows dev machines) it is skipped and
+# core_motor.py automatically falls back to dry-run mode.
+lgpio>=0.2.2.0; sys_platform == "linux"

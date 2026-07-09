@@ -11,7 +11,8 @@ from typing import Optional
 
 import psutil
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from core_motor import DifferentialDriveController
 
@@ -68,12 +69,15 @@ active_websocket: Optional[WebSocket] = None
 last_heartbeat_time = time.monotonic()
 watchdog_tripped = False
 current_settings = motors.get_settings()
+server_start_time = time.monotonic()
+background_tasks_started = False
 
 BASE_DIR = Path(__file__).resolve().parent
-INDEX_CANDIDATES = (
-    BASE_DIR / "templates" / "index.html",
-    BASE_DIR / "index.html",
-)
+DASHBOARD_TEMPLATE = BASE_DIR / "templates" / "index.html"
+STATIC_DIR = BASE_DIR / "static"
+
+if STATIC_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 # ============================================================
@@ -82,7 +86,15 @@ INDEX_CANDIDATES = (
 
 @app.on_event("startup")
 async def startup_event() -> None:
+    global background_tasks_started
+
     logger.info("Server starting up.")
+
+    if background_tasks_started:
+        logger.warning("Background tasks already running; skipping duplicate startup.")
+        return
+
+    background_tasks_started = True
     asyncio.create_task(watchdog_task())
     asyncio.create_task(telemetry_task())
     asyncio.create_task(log_broadcaster_task())
@@ -212,11 +224,46 @@ async def telemetry_task() -> None:
 
 @app.get("/")
 async def get_interface() -> HTMLResponse:
-    for candidate in INDEX_CANDIDATES:
-        if candidate.exists():
-            return HTMLResponse(content=candidate.read_text(encoding="utf-8"))
+    """Serve the Raspberry Pi control dashboard.
 
-    raise FileNotFoundError("index.html was not found in templates/ or beside server.py")
+    This must always be templates/index.html — the repository root index.html
+    is a separate, unrelated GitHub Pages landing page and is never served
+    here, even as a fallback.
+    """
+    if not DASHBOARD_TEMPLATE.exists():
+        raise FileNotFoundError(f"Dashboard template not found at {DASHBOARD_TEMPLATE}")
+
+    return HTMLResponse(content=DASHBOARD_TEMPLATE.read_text(encoding="utf-8"))
+
+
+@app.get("/health")
+async def get_health() -> JSONResponse:
+    state = motors.get_state()
+    return JSONResponse({
+        "status": "ok",
+        "uptime_s": round(time.monotonic() - server_start_time, 1),
+        "client_connected": active_websocket is not None,
+        "watchdog_tripped": watchdog_tripped,
+        "drive_mode": state["drive_mode"],
+    })
+
+
+@app.get("/api/status")
+async def get_status() -> JSONResponse:
+    state = motors.get_state()
+    return JSONResponse({
+        "cpu": psutil.cpu_percent(),
+        "ram": psutil.virtual_memory().percent,
+        "temp": round(read_cpu_temperature(), 1),
+        "wifi": read_wifi_signal(),
+        "power_ok": read_power_ok(),
+        "left_motor": round(state["left_motor"] * 100),
+        "right_motor": round(state["right_motor"] * 100),
+        "drive_mode": state["drive_mode"],
+        "settings": motors.get_settings(),
+        "client_connected": active_websocket is not None,
+        "watchdog_tripped": watchdog_tripped,
+    })
 
 
 # ============================================================
@@ -228,9 +275,28 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     global active_websocket, last_heartbeat_time, watchdog_tripped, current_settings
 
     await websocket.accept()
+
+    # Only one active driver is allowed at a time. A new connection takes
+    # over and the previous one is closed safely; motors are stopped during
+    # the handover so control never briefly belongs to no one and no one
+    # simultaneously.
+    previous_websocket = active_websocket
     active_websocket = websocket
     last_heartbeat_time = time.monotonic()
     watchdog_tripped = False
+
+    if previous_websocket is not None and previous_websocket is not websocket:
+        motors.emergency_stop()
+        try:
+            await previous_websocket.send_json({
+                "type": "log",
+                "level": "WARNING",
+                "message": "این نشست توسط یک اتصال جدید جایگزین شد.",
+            })
+            await previous_websocket.close(code=4001, reason="replaced_by_new_connection")
+        except Exception:
+            pass
+        logger.warning("Previous WebSocket client replaced by a new connection; motors stopped.")
 
     logger.info("Client connected.")
 
@@ -288,11 +354,13 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             logger.warning("Unknown WebSocket message type: %s", msg_type)
 
     except WebSocketDisconnect:
-        logger.warning("Client disconnected; motors stopped.")
         motors.emergency_stop()
-        active_websocket = None
+        if active_websocket is websocket:
+            active_websocket = None
+            logger.warning("Client disconnected; motors stopped.")
 
     except Exception as exc:
-        logger.error("WebSocket error: %s", exc)
         motors.emergency_stop()
-        active_websocket = None
+        if active_websocket is websocket:
+            active_websocket = None
+            logger.error("WebSocket error: %s", exc)
